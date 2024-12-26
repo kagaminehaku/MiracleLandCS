@@ -1,0 +1,90 @@
+﻿@using MiracleLandCS.Components.Layout
+@using MiracleLandCS.Services
+@using MiracleLandCS.Models
+@inject AuthService AuthService
+@inject NavigationManager NavigationManager
+@layout NullLayout
+@page "/"
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white text-center">
+                    <h2>Login</h2>
+                </div>
+                <div class="card-body">
+                    @if (isCheckingToken)
+                    {
+                        <div class="text-center">
+                            <p>Connecting to server...</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <EditForm Model="loginRequest" OnValidSubmit="HandleLogin">
+                            <DataAnnotationsValidator />
+                            <ValidationSummary />
+
+                            <div class="mb-3">
+                                <label for="username" class="form-label">Username</label>
+                                <InputText id="username" @bind-Value="loginRequest.username" class="form-control" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Password</label>
+                                <InputText id="password" @bind-Value="loginRequest.password" type="password" class="form-control" />
+                            </div>
+
+                            @if (errorMessage != null)
+                            {
+                                <div class="alert alert-danger">@errorMessage</div>
+                            }
+
+                            <div class="d-flex justify-content-between mt-4">
+                                <button type="submit" class="btn btn-primary">Login</button>
+                                <button type="button" class="btn btn-secondary" @onclick="GoToRegister">Register</button>                          
+                            </div>
+                        </EditForm>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private UserLoginRequest loginRequest = new UserLoginRequest();
+    private string? errorMessage;
+    private bool isCheckingToken = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var isValidToken = await AuthService.IsTokenValidAsync();
+
+        if (isValidToken)
+        {
+            NavigationManager.NavigateTo("/CsAccountManagement", true);
+        }
+
+        isCheckingToken = false;
+    }
+
+    private async Task HandleLogin()
+    {
+        var token = await AuthService.LoginAsync(loginRequest.username, loginRequest.password);
+        if (token != null)
+        {
+            NavigationManager.NavigateTo("/CsAccountManagement");
+        }
+        else
+        {
+            errorMessage = "Invalid username or password.";
+        }
+    }
+
+    private void GoToRegister()
+    {
+        NavigationManager.NavigateTo("/CsAccountRegister");
+    }
+}

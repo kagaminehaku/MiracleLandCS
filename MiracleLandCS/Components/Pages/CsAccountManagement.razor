@@ -1,0 +1,87 @@
+﻿@page "/CsAccountManagement"
+@using MiracleLandCS.Services
+@using MiracleLandCS.Models
+@inject AuthService AuthService
+@inject UserService UserService
+@inject NavigationManager NavigationManager
+
+<div class="container mt-5">
+    <h1 class="text-center">Welcome to account center</h1>
+
+    @if (isLoading)
+    {
+        <div class="text-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else if (userInfo != null)
+    {
+        <div class="card mx-auto" style="width: 18rem;">
+            <img src="@userInfo.Avt" class="card-img-top" alt="User Avatar" />
+            <div class="card-body">
+                <h5 class="card-title text-center">@userInfo.Username</h5>
+                <p class="card-text"><strong>Email:</strong> @userInfo.Email</p>
+                <p class="card-text"><strong>Phone:</strong> @userInfo.Phone</p>
+                <p class="card-text"><strong>Address:</strong> @userInfo.Address</p>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-danger" role="alert">
+            Could not fetch user information. Please try logging in again.
+        </div>
+    }
+
+    <div class="d-flex justify-content-between mt-4">
+        <button class="btn btn-danger" @onclick="Logout">Logout</button>
+        <button class="btn btn-primary" @onclick="CheckTokenValidity">Check Token Validity</button>
+        <button class="btn btn-primary" @onclick="GoToEdit">Edit account info</button>
+    </div>
+
+    @if (!string.IsNullOrEmpty(tokenMessage))
+    {
+        <div class="alert alert-info mt-3">@tokenMessage</div>
+    }
+</div>
+
+@code {
+    private GetAccountInfo? userInfo;
+    private bool isLoading = true;
+    private string? tokenMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            userInfo = await UserService.GetAccountInfoAsync();
+        }
+        catch (Exception ex)
+        {
+            tokenMessage = $"Error fetching account info: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void Logout()
+    {
+        AuthService.ClearTokenAsync();
+        NavigationManager.NavigateTo("/");
+    }
+
+    private async Task CheckTokenValidity()
+    {
+        var isValid = await AuthService.IsTokenValidAsync();
+        tokenMessage = isValid ? "Token is valid." : "Token is expired or invalid.";
+    }
+
+    private void GoToEdit()
+    {
+        NavigationManager.NavigateTo("/CsAccountInfo");
+    }
+}

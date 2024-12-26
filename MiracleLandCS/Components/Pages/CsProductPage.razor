@@ -1,0 +1,67 @@
+﻿@page "/CsProductPage"
+@inject CsProductsService ProductService
+@inject NavigationManager Navigation
+@using MiracleLandCS.Models
+
+<div class="container mt-5">
+    <h1 class="text-center">All Products</h1>
+
+    @if (isLoading)
+    {
+            <div class="text-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+    }
+    else if (products != null && products.Count > 0)
+    {
+            <div class="row">
+            @foreach (var product in products)
+            {
+                        <div class="col-md-4 mb-4">
+                            <div class="card">
+                                <img src="@product.Pimg" class="card-img-top" alt="@product.Pname" />
+                                <div class="card-body text-center">
+                                    <h5 class="card-title">@product.Pname</h5>
+                                    <p class="card-text"><strong>Price:</strong> $@product.Pprice</p>
+                                    <button class="btn btn-primary" @onclick="() => ShowMoreInfo(product.Pid)">Show More</button>
+                                </div>
+                            </div>
+                        </div>
+            }
+            </div>
+    }
+    else
+    {
+            <div class="alert alert-danger text-center" role="alert">
+                No products available.
+            </div>
+    }
+</div>
+
+@code {
+    private List<CsProducts>? products;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            products = await ProductService.GetAllProductsAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching products: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void ShowMoreInfo(Guid productId)
+    {
+        Navigation.NavigateTo($"/product-info/{productId}");
+    }
+}

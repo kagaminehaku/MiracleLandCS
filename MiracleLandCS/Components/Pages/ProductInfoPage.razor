@@ -1,0 +1,140 @@
+﻿@page "/product-info/{productId:guid}"
+@inject CsProductsService ProductService
+@inject NavigationManager Navigation
+@using MiracleLandCS.Models
+@using MiracleLandCS.Services
+
+<div class="container mt-5">
+    <h1 class="text-center">Product Details</h1>
+
+    @if (isLoading)
+    {
+        <div class="text-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else if (product == null)
+    {
+        <div class="alert alert-danger text-center" role="alert">
+            Could not load product details. Please try again.
+        </div>
+    }
+    else
+    {
+        <div class="card mx-auto" style="width: 24rem;">
+            <img src="@product.Pimg" class="card-img-top" alt="@product.Pname" />
+            <div class="card-body">
+                <h5 class="card-title text-center">@product.Pname</h5>
+                <p class="card-text"><strong>Price:</strong> $@product.Pprice</p>
+                <p class="card-text"><strong>Stock:</strong> @product.Pquantity</p>
+                <p class="card-text">@product.Pinfo</p>
+                <div class="d-flex justify-content-between">
+                    <button class="btn btn-primary" @onclick="ShowAddToCartDialog">Add to Cart</button>
+                    <button class="btn btn-secondary" @onclick="GoBack">Back to Products</button>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (showDialog)
+    {
+        <div class="modal show d-block" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Enter Quantity</h5>
+                        <button type="button" class="btn-close" aria-label="Close" @onclick="HandleDialogClose"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="number" class="form-control" @bind-value="quantity" min="1" max="@product?.Pquantity" />
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-primary" @onclick="AddToCart">Confirm</button>
+                        <button class="btn btn-secondary" @onclick="HandleDialogClose">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-backdrop fade show"></div>
+    }
+
+    @if (!string.IsNullOrEmpty(tokenMessage))
+    {
+        <div class="alert alert-info mt-3 text-center">@tokenMessage</div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public Guid productId { get; set; }
+
+    private CsProducts? product;
+    private int quantity = 1;
+    private bool isLoading = true;
+    private bool showDialog = false;
+    private string? tokenMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            product = await ProductService.GetProductByIdAsync(productId);
+        }
+        catch (Exception ex)
+        {
+            tokenMessage = $"Error loading product: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void ShowAddToCartDialog()
+    {
+        showDialog = true;
+        quantity = 1;
+    }
+
+    private async Task AddToCart()
+    {
+        if (product == null || quantity <= 0 || quantity > product.Pquantity)
+        {
+            tokenMessage = "Invalid quantity.";
+            return;
+        }
+
+        var token = await SecureStorage.GetAsync("auth_token");
+        var productToCart = new CsProductsToCart
+            {
+                token = token,
+                Pid = product.Pid,
+                Pquantity = quantity
+            };
+
+        try
+        {
+            tokenMessage = await ProductService.UpdateShoppingCartAsync(productToCart);
+        }
+        catch (Exception ex)
+        {
+            tokenMessage = $"Error adding to cart: {ex.Message}";
+        }
+        finally
+        {
+            showDialog = false;
+        }
+    }
+
+    private void HandleDialogClose()
+    {
+        showDialog = false;
+    }
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/CsProductPage");
+    }
+}
+

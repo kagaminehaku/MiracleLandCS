@@ -1,0 +1,26 @@
+﻿@if (Visible)
+{
+        <div class="dialog">
+            <div class="dialog-content">
+            @ChildContent
+                <button @onclick="CloseDialog">Close</button>
+            </div>
+        </div>
+}
+
+@code {
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    [Parameter]
+    public bool Visible { get; set; }
+
+    [Parameter]
+    public EventCallback<bool> OnClose { get; set; }
+
+    private void CloseDialog()
+    {
+        Visible = false;
+        OnClose.InvokeAsync(false);
+    }
+}

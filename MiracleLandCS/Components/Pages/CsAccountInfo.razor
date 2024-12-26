@@ -1,0 +1,123 @@
+﻿@page "/CsAccountInfo"
+@inject AccountService AccountService
+@inject NavigationManager NavigationManager
+@using MiracleLandCS.Models
+
+<h1 class="text-center text-primary mb-4">Account Information</h1>
+
+@if (isLoading)
+{
+    <div class="text-center">
+        <p>Loading your account information...</p>
+        <div class="spinner-border text-primary" role="status"></div>
+    </div>
+}
+else
+{
+    <EditForm Model="userAccountUpdate" OnValidSubmit="HandleUpdate">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="mb-3">
+            <label for="email" class="form-label">Email</label>
+            <InputText id="email" @bind-Value="userAccountUpdate.Email" class="form-control" />
+        </div>
+
+        <div class="mb-3">
+            <label for="phone" class="form-label">Phone</label>
+            <InputText id="phone" @bind-Value="userAccountUpdate.Phone" class="form-control" />
+        </div>
+
+        <div class="mb-3">
+            <label for="address" class="form-label">Address</label>
+            <InputText id="address" @bind-Value="userAccountUpdate.Address" class="form-control" />
+        </div>
+
+        <div class="mb-3">
+            <label for="avatar" class="form-label">Avatar</label>
+            <InputFile OnChange="HandleAvatarUpload" class="form-control" />
+        </div>
+
+        @if (!string.IsNullOrEmpty(currentAvatarUrl))
+        {
+            <div class="mb-3">
+                <label class="form-label">Current Avatar</label>
+                <img src="@currentAvatarUrl" class="img-thumbnail" style="width: 150px; height: 150px;" />
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(message))
+        {
+            <div class="alert alert-info">@message</div>
+        }
+
+        <div class="d-flex justify-content-between mt-4">
+            <button type="submit" class="btn btn-primary">Update Info</button>
+            <button type="button" class="btn btn-secondary" @onclick="GoBack">Cancel</button>
+        </div>
+    </EditForm>
+}
+
+@code {
+    private UserAccountUpdate userAccountUpdate = new UserAccountUpdate();
+    private bool isLoading = true;
+    private string? currentAvatarUrl;
+    private string? message;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var accountInfo = await AccountService.GetAccountInfoAsync();
+            if (accountInfo != null)
+            {
+                userAccountUpdate.Email = accountInfo.Email;
+                userAccountUpdate.Phone = accountInfo.Phone;
+                userAccountUpdate.Address = accountInfo.Address;
+                currentAvatarUrl = accountInfo.Avt;
+            }
+        }
+        catch (Exception ex)
+        {
+            message = $"Failed to load account information: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task HandleUpdate()
+    {
+        try
+        {
+            message = await AccountService.UpdateAccountInfoAsync(userAccountUpdate);
+        }
+        catch (Exception ex)
+        {
+            message = $"Update failed: {ex.Message}";
+        }
+    }
+
+    private async Task HandleAvatarUpload(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+
+        // Validate file type and size if necessary
+        if (file != null)
+        {
+            using var stream = file.OpenReadStream(10 * 1024 * 1024); // Limit to 10 MB
+            using var memoryStream = new MemoryStream();
+            await stream.CopyToAsync(memoryStream);
+            byte[] fileBytes = memoryStream.ToArray();
+
+            // Encode the image to Base64
+            userAccountUpdate.AvatarContent = Convert.ToBase64String(fileBytes);
+        }
+    }
+
+    private void GoBack()
+    {
+        NavigationManager.NavigateTo("/CsAccountManagement");
+    }
+}
