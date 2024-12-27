@@ -1,6 +1,5 @@
 ﻿using MiracleLandCS.Models;
 using System.Net.Http.Json;
-using MiracleLandCS.Models;
 
 public class CsProductsService
 {

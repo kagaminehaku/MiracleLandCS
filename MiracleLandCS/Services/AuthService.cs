@@ -37,7 +37,6 @@ namespace MiracleLandCS.Services
             var responseBody = await response.Content.ReadFromJsonAsync<JsonElement>();
             var token = responseBody.GetProperty("token").GetString();
 
-            // Save token securely
             if (!string.IsNullOrEmpty(token))
             {
                 await SecureStorage.SetAsync(TokenKey, token);

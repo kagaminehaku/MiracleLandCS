@@ -1,0 +1,168 @@
+﻿@page "/CsShoppingCart"
+@inject CsShoppingCartService ShoppingCartService
+@inject CsProductsService ProductServices
+@inject OrderService OrderServices
+@inject NavigationManager Navigation
+@inject AuthService Authen
+@using MiracleLandCS.Services
+@using MiracleLandCS.Models
+
+<div class="container mt-5">
+    <h1 class="text-center">Your Shopping Cart</h1>
+
+    @if (isLoading)
+    {
+        <div class="text-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else if (cartItems != null && cartItems.Count > 0)
+    {
+        <div class="row">
+            @foreach (var item in cartItems)
+            {
+                <div class="col-md-6 mb-4">
+                    <div class="card">
+                        <div class="row g-0">
+                            <div class="col-md-4">
+                                <img src="@item.Pimg" class="img-fluid rounded-start" alt="@item.Pname" />
+                            </div>
+                            <div class="col-md-8">
+                                <div class="card-body">
+                                    <h5 class="card-title">@item.Pname</h5>
+                                    <p class="card-text"><strong>Price:</strong> $@item.Pprice</p>
+                                    <p class="card-text">
+                                        <strong>Quantity:</strong>
+                                        <input type="number" class="form-control d-inline w-25"
+                                        min="1"
+                                        value="@item.Pquantity"
+                                        @onchange="async e => await UpdateQuantity(item, e)" />
+                                    </p>
+                                    <p class="card-text"><small class="text-muted">@item.Pinfo</small></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="row mt-4">
+            <div class="col text-end">
+                <h3>Total Price: $@totalPrice</h3>
+                <button class="btn btn-success" @onclick="Checkout">Checkout</button>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-warning text-center" role="alert">
+            Your shopping cart is empty!
+        </div>
+    }
+</div>
+
+@code {
+    private List<CsProducts>? cartItems;
+    private bool isLoading = true;
+    private decimal totalPrice = 0;
+    private string tokenMessage;
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCartItems();
+    }
+
+    private async Task LoadCartItems()
+    {
+        isLoading = true;
+        try
+        {
+            var token = await SecureStorage.GetAsync("auth_token");
+            if (!string.IsNullOrEmpty(token))
+            {
+                cartItems = await ShoppingCartService.GetShoppingCartItemsAsync(token);
+                CalculateTotalPrice();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Error loading cart: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void CalculateTotalPrice()
+    {
+        totalPrice = cartItems?.Sum(item => item.Pprice * item.Pquantity) ?? 0;
+    }
+
+    private async Task UpdateQuantity(CsProducts item, ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int newQuantity) && newQuantity > 0)
+        {
+            item.Pquantity = newQuantity;
+            var savedtoken = await Authen.GetSavedTokenAsync();
+            var result = await ProductServices.UpdateShoppingCartAsync(new CsProductsToCart
+                {
+                    token = savedtoken.ToString(),
+                    Pid = item.Pid,
+                    Pquantity = newQuantity
+                });
+
+            if (result.StartsWith("Failed"))
+            {
+                tokenMessage = result ;
+            }
+            else
+            {
+                CalculateTotalPrice();
+            }
+        }
+    }
+
+    private async Task Checkout()
+    {
+        if (cartItems != null && cartItems.Any())
+        {
+            var token = await SecureStorage.GetAsync("auth_token");
+            if (string.IsNullOrEmpty(token))
+            {
+                Console.Error.WriteLine("Error: Token is missing.");
+                return;
+            }
+
+            var orderRequest = new CsOrdersRequest
+                {
+                    token = token,
+                    Total = totalPrice,
+                    IsPayment = false,
+                    ShipId = null, // Update this if shipping information is required
+                    CsOrderDetails = cartItems.Select(item => new CsOrderDetailRequest
+                    {
+                        Pid = item.Pid,
+                        Quantity = item.Pquantity
+                    }).ToList()
+                };
+
+            var result = await OrderServices.PostOrderAsync(orderRequest);
+            if (!result.StartsWith("Failed"))
+            {
+                Navigation.NavigateTo("/Order");
+            }
+            else
+            {
+                Console.Error.WriteLine(result);
+            }
+        }
+    }
+
+}
+@if (!string.IsNullOrEmpty(tokenMessage))
+{
+    <div class="alert alert-info mt-3">@tokenMessage</div>
+}
