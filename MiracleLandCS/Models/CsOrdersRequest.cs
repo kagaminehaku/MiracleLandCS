@@ -15,7 +15,6 @@
 
         public List<CsOrderDetailRequest> CsOrderDetails { get; set; } = new List<CsOrderDetailRequest>();
     }
-
     public class CsOrderDetailRequest
     {
         public Guid Odid { get; set; }
@@ -23,6 +22,9 @@
         public Guid Orderid { get; set; }
 
         public Guid Pid { get; set; }
+
+        public string Pname { get; set; } = null!;
+        public string Pimg { get; set; } = null!;
 
         public int Quantity { get; set; }
     }

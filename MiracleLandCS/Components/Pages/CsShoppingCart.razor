@@ -103,7 +103,7 @@
 
     private async Task UpdateQuantity(CsProducts item, ChangeEventArgs e)
     {
-        if (int.TryParse(e.Value?.ToString(), out int newQuantity) && newQuantity > 0)
+        if (int.TryParse(e.Value?.ToString(), out int newQuantity) && newQuantity >= 0)
         {
             item.Pquantity = newQuantity;
             var savedtoken = await Authen.GetSavedTokenAsync();
@@ -132,20 +132,24 @@
             var token = await SecureStorage.GetAsync("auth_token");
             if (string.IsNullOrEmpty(token))
             {
-                Console.Error.WriteLine("Error: Token is missing.");
+                tokenMessage="Error: Token is missing.";
                 return;
             }
 
             var orderRequest = new CsOrdersRequest
                 {
                     token = token,
+                    Orderid = Guid.NewGuid(),
                     Total = totalPrice,
+                    Uid = Guid.NewGuid(),
                     IsPayment = false,
-                    ShipId = null, // Update this if shipping information is required
+                    ShipId = null,
                     CsOrderDetails = cartItems.Select(item => new CsOrderDetailRequest
                     {
                         Pid = item.Pid,
-                        Quantity = item.Pquantity
+                        Quantity = item.Pquantity,
+                        Pname = "Ok",
+                        Pimg = "Ok"
                     }).ToList()
                 };
 
@@ -156,7 +160,7 @@
             }
             else
             {
-                Console.Error.WriteLine(result);
+               tokenMessage=result;
             }
         }
     }

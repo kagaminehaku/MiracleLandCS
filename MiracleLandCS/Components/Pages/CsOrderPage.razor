@@ -4,56 +4,63 @@
 @inject AuthService Authen
 @using MiracleLandCS.Models
 @using MiracleLandCS.Services
+
 <div class="container mt-5">
     <h1 class="text-center">Your Orders</h1>
 
     @if (isLoading)
     {
-        <div class="text-center">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
+            <div class="text-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
             </div>
-        </div>
     }
     else if (orders != null && orders.Count > 0)
     {
-        <div class="row">
+            <div class="row">
             @foreach (var order in orders)
             {
-                <div class="col-md-6 mb-4">
-                    <div class="card">
-                        <div class="card-body">
-                            <h5 class="card-title">Order ID: @order.Orderid</h5>
-                            <p class="card-text"><strong>Total Price:</strong> $@order.Total</p>
-                            <p class="card-text"><strong>Payment Status:</strong> @(order.IsPayment ? "Paid" : "Pending")</p>
-                            <button class="btn btn-primary" @onclick="() => ViewOrderDetails(order.Orderid)">View Details</button>
+                        <div class="col-md-6 mb-4">
+                            <div class="card">
+                                <div class="card-body">
+                                    <!-- Hide Order ID -->
+                                    <!-- <h5 class="card-title">Order ID: @order.Orderid</h5> -->
+                                    <p class="card-text"><strong>Total Price:</strong> $@order.Total</p>
+                                    <p class="card-text"><strong>Payment Status:</strong> @(order.IsPayment ? "Paid" : "Pending")</p>
+                                    <button class="btn btn-primary" @onclick="() => ViewOrderDetails(order.Orderid)">View Details</button>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </div>
             }
-        </div>
+            </div>
     }
     else
     {
-        <div class="alert alert-warning text-center" role="alert">
-            No orders found.
-        </div>
+            <div class="alert alert-warning text-center" role="alert">
+                No orders found.
+            </div>
     }
 
     @if (orderDetails != null && orderDetails.Any())
     {
-        <div class="mt-5">
-            <h3>Order Details</h3>
-            <ul class="list-group">
+            <div class="mt-5">
+                <h3>Order Details</h3>
+                <ul class="list-group">
                 @foreach (var detail in orderDetails)
                 {
-                    <li class="list-group-item">
-                        <strong>Product ID:</strong> @detail.Pid |
-                        <strong>Quantity:</strong> @detail.Quantity
-                    </li>
+                            <li class="list-group-item">
+                                <div class="d-flex align-items-center">
+                                    <img src="@detail.Pimg" alt="@detail.Pname" class="img-thumbnail me-3" style="width: 50px; height: 50px;" />
+                                    <div>
+                                        <strong>@detail.Pname</strong><br />
+                                        <strong>Quantity:</strong> @detail.Quantity
+                                    </div>
+                                </div>
+                            </li>
                 }
-            </ul>
-        </div>
+                </ul>
+            </div>
     }
 </div>
 

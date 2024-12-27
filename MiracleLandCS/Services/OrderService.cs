@@ -30,7 +30,7 @@ namespace MiracleLandCS.Services
 
         public async Task<List<CsOrderDetailRequest>> GetOrderDetailsAsync(Guid orderId)
         {
-            return await _httpClient.GetFromJsonAsync<List<CsOrderDetailRequest>>($"/api/CsOrders/details/{orderId}");
+            return await _httpClient.GetFromJsonAsync<List<CsOrderDetailRequest>>($"/api/CsOrders/order-details/{orderId}");
         }
     }
 }
