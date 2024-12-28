@@ -103,15 +103,13 @@ else
     {
         var file = e.File;
 
-        // Validate file type and size if necessary
         if (file != null)
         {
-            using var stream = file.OpenReadStream(10 * 1024 * 1024); // Limit to 10 MB
+            using var stream = file.OpenReadStream(10 * 1024 * 1024); 
             using var memoryStream = new MemoryStream();
             await stream.CopyToAsync(memoryStream);
             byte[] fileBytes = memoryStream.ToArray();
 
-            // Encode the image to Base64
             userAccountUpdate.AvatarContent = Convert.ToBase64String(fileBytes);
         }
     }

@@ -73,8 +73,6 @@ namespace MiracleLandCS.Services
         {
             var token = await GetSavedTokenAsync();
             if (string.IsNullOrEmpty(token)) return false;
-
-            // Add logic to validate token (e.g., check expiration by decoding JWT or API validation)
             var response = await _httpClient.GetAsync($"api/CsUserAccounts/ValidateToken?token={token}");
             return response.IsSuccessStatusCode;
         }
