@@ -6,6 +6,24 @@
 <div class="container mt-5">
     <h1 class="text-center">All Products</h1>
 
+    <!-- Search Bar -->
+    <div class="mb-4">
+        <input type="text" class="form-control" placeholder="Search products..." @oninput="(e) => FilterProducts(e.Value.ToString())">
+    </div>
+
+    <!-- Price Range Filter -->
+    <div class="d-flex align-items-center mb-4">
+        <input type="number" class="form-control me-2" placeholder="Min Price" @bind="minPrice">
+        <input type="number" class="form-control" placeholder="Max Price" @bind="maxPrice">
+        <button class="btn btn-primary ms-2" @onclick="FilterByPriceRange">Apply</button>
+    </div>
+
+    <!-- Sort Buttons -->
+    <div class="mb-4 text-center">
+        <button class="btn btn-secondary me-2" @onclick="() => SortProductsByPrice(true)">Sort by Price: Low to High</button>
+        <button class="btn btn-secondary" @onclick="() => SortProductsByPrice(false)">Sort by Price: High to Low</button>
+    </div>
+
     @if (isLoading)
     {
             <div class="text-center">
@@ -14,10 +32,10 @@
                 </div>
             </div>
     }
-    else if (products != null && products.Count > 0)
+    else if (PaginatedProducts != null && PaginatedProducts.Any())
     {
             <div class="row">
-            @foreach (var product in products)
+            @foreach (var product in PaginatedProducts)
             {
                         <div class="col-md-4 mb-4">
                             <div class="card">
@@ -31,6 +49,13 @@
                         </div>
             }
             </div>
+
+            <!-- Pagination Controls -->
+            <div class="d-flex justify-content-center mt-4">
+                <button class="btn btn-primary me-2" @onclick="PreviousPage" disabled="@(currentPage == 1)">Previous</button>
+                <span>Page @currentPage of @totalPages</span>
+                <button class="btn btn-primary ms-2" @onclick="NextPage" disabled="@(currentPage == totalPages)">Next</button>
+            </div>
     }
     else
     {
@@ -42,13 +67,22 @@
 
 @code {
     private List<CsProducts>? products;
+    private List<CsProducts>? filteredProducts;
     private bool isLoading = true;
+
+    private int currentPage = 1;
+    private int itemsPerPage = 6;
+    private int totalPages => (int)Math.Ceiling((filteredProducts?.Count ?? 0) / (double)itemsPerPage);
+
+    private decimal? minPrice;
+    private decimal? maxPrice;
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
             products = await ProductService.GetAllProductsAsync();
+            filteredProducts = new List<CsProducts>(products); // Initialize filtered list
         }
         catch (Exception ex)
         {
@@ -63,5 +97,52 @@
     private void ShowMoreInfo(Guid productId)
     {
         Navigation.NavigateTo($"/product-info/{productId}");
+    }
+
+    private void FilterProducts(string searchText)
+    {
+        if (string.IsNullOrWhiteSpace(searchText))
+        {
+            filteredProducts = new List<CsProducts>(products);
+        }
+        else
+        {
+            filteredProducts = products?.Where(p => p.Pname.Contains(searchText, StringComparison.OrdinalIgnoreCase)).ToList();
+        }
+        currentPage = 1; // Reset to first page after filtering
+    }
+
+    private void SortProductsByPrice(bool ascending)
+    {
+        if (ascending)
+        {
+            filteredProducts = filteredProducts?.OrderBy(p => p.Pprice).ToList();
+        }
+        else
+        {
+            filteredProducts = filteredProducts?.OrderByDescending(p => p.Pprice).ToList();
+        }
+    }
+
+    private void FilterByPriceRange()
+    {
+        filteredProducts = products?.Where(p =>
+            (!minPrice.HasValue || p.Pprice >= minPrice.Value) &&
+            (!maxPrice.HasValue || p.Pprice <= maxPrice.Value)
+        ).ToList();
+        currentPage = 1; // Reset to first page after filtering
+    }
+
+    private IEnumerable<CsProducts> PaginatedProducts =>
+        filteredProducts?.Skip((currentPage - 1) * itemsPerPage).Take(itemsPerPage);
+
+    private void NextPage()
+    {
+        if (currentPage < totalPages) currentPage++;
+    }
+
+    private void PreviousPage()
+    {
+        if (currentPage > 1) currentPage--;
     }
 }
