@@ -23,6 +23,17 @@ namespace MiracleLandCS.Services
             return $"Failed to post order: {response.ReasonPhrase}";
         }
 
+        public async Task<string> GetPaymentURL(PaymentRequest paymentrequest)
+        {
+            var response = await _httpClient.PostAsJsonAsync("/api/CsProducts/GetPaymentURL", paymentrequest);
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadAsStringAsync();
+            }
+
+            return $"Failed to post order: {response.ReasonPhrase}";
+        }
+
         public async Task<List<CsOrdersRequest>> GetUserOrdersAsync(string token)
         {
             return await _httpClient.GetFromJsonAsync<List<CsOrdersRequest>>($"/api/CsOrders/Orders?token={token}");

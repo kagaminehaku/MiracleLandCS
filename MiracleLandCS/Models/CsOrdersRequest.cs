@@ -28,4 +28,10 @@
 
         public int Quantity { get; set; }
     }
+    public class PaymentRequest
+    {
+        public Guid Orderid { get; set; }
+        public string PaymentIP { get; set; }
+    }
+
 }

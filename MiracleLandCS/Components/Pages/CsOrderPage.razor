@@ -2,65 +2,70 @@
 @inject OrderService OrderService
 @inject NavigationManager Navigation
 @inject AuthService Authen
+@inject IJSRuntime JSRuntime
 @using MiracleLandCS.Models
 @using MiracleLandCS.Services
+@using Newtonsoft.Json.Linq;
+@using Microsoft.JSInterop
 
 <div class="container mt-5">
     <h1 class="text-center">Your Orders</h1>
 
     @if (isLoading)
     {
-            <div class="text-center">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
+        <div class="text-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
             </div>
+        </div>
     }
     else if (orders != null && orders.Count > 0)
     {
-            <div class="row">
+        <div class="row">
             @foreach (var order in orders)
             {
-                        <div class="col-md-6 mb-4">
-                            <div class="card">
-                                <div class="card-body">
-                                    <!-- Hide Order ID -->
-                                    <!-- <h5 class="card-title">Order ID: @order.Orderid</h5> -->
-                                    <p class="card-text"><strong>Total Price:</strong> $@order.Total</p>
-                                    <p class="card-text"><strong>Payment Status:</strong> @(order.IsPayment ? "Paid" : "Pending")</p>
-                                    <button class="btn btn-primary" @onclick="() => ViewOrderDetails(order.Orderid)">View Details</button>
-                                </div>
-                            </div>
+                <div class="col-md-6 mb-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <p class="card-text"><strong>Total Price:</strong> $@order.Total</p>
+                            <p class="card-text"><strong>Payment Status:</strong> @(order.IsPayment ? "Paid" : "Pending")</p>
+                            <button class="btn btn-primary" @onclick="() => ViewOrderDetails(order.Orderid)">View Details</button>
+                            @if (!order.IsPayment)
+                            {
+                                <button class="btn btn-info" @onclick="() => GoPayment(order.Orderid)">Payment</button>
+                            }
                         </div>
+                    </div>
+                </div>
             }
-            </div>
+        </div>
     }
     else
     {
-            <div class="alert alert-warning text-center" role="alert">
-                No orders found.
-            </div>
+        <div class="alert alert-warning text-center" role="alert">
+            No orders found.
+        </div>
     }
 
     @if (orderDetails != null && orderDetails.Any())
     {
-            <div class="mt-5">
-                <h3>Order Details</h3>
-                <ul class="list-group">
+        <div class="mt-5">
+            <h3>Order Details</h3>
+            <ul class="list-group">
                 @foreach (var detail in orderDetails)
                 {
-                            <li class="list-group-item">
-                                <div class="d-flex align-items-center">
-                                    <img src="@detail.Pimg" alt="@detail.Pname" class="img-thumbnail me-3" style="width: 50px; height: 50px;" />
-                                    <div>
-                                        <strong>@detail.Pname</strong><br />
-                                        <strong>Quantity:</strong> @detail.Quantity
-                                    </div>
-                                </div>
-                            </li>
+                    <li class="list-group-item">
+                        <div class="d-flex align-items-center">
+                            <img src="@detail.Pimg" alt="@detail.Pname" class="img-thumbnail me-3" style="width: 50px; height: 50px;" />
+                            <div>
+                                <strong>@detail.Pname</strong><br />
+                                <strong>Quantity:</strong> @detail.Quantity
+                            </div>
+                        </div>
+                    </li>
                 }
-                </ul>
-            </div>
+            </ul>
+        </div>
     }
 </div>
 
@@ -90,8 +95,50 @@
         }
     }
 
+    private async Task GoPayment(Guid orderId)
+    {
+        try
+        {
+            var paymentRequest = new PaymentRequest
+                {
+                    Orderid = orderId,
+                    PaymentIP = await GetPublicIpAsync()
+                };
+            string paymentUrl = await OrderService.GetPaymentURL(paymentRequest);
+            //Navigation.NavigateTo(paymentUrl);
+            await JSRuntime.InvokeVoidAsync("open", paymentUrl, "_blank");
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Error initiating payment: {ex.Message}");
+        }
+    }
+
+    private async Task<string> GetPublicIpAsync()
+    {
+        try
+        {
+            using HttpClient client = new HttpClient();
+            string response = await client.GetStringAsync("https://api.ipify.org?format=json");
+            JObject json = JObject.Parse(response);
+            return json["ip"]?.ToString() ?? string.Empty;
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Error retrieving public IP: {ex.Message}");
+            return string.Empty;
+        }
+    }
+
     private async Task ViewOrderDetails(Guid orderId)
     {
-        orderDetails = await OrderService.GetOrderDetailsAsync(orderId);
+        try
+        {
+            orderDetails = await OrderService.GetOrderDetailsAsync(orderId);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Error loading order details: {ex.Message}");
+        }
     }
 }
