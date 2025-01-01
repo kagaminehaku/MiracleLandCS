@@ -73,7 +73,7 @@
     private List<CsOrdersRequest>? orders;
     private List<CsOrderDetailRequest>? orderDetails;
     private bool isLoading = true;
-
+    private string? tokenMessage;
     protected override async Task OnInitializedAsync()
     {
         isLoading = true;
@@ -106,7 +106,20 @@
                 };
             string paymentUrl = await OrderService.GetPaymentURL(paymentRequest);
             //Navigation.NavigateTo(paymentUrl);
-            await JSRuntime.InvokeVoidAsync("open", paymentUrl, "_blank");
+            //await JSRuntime.InvokeVoidAsync("open", paymentUrl, "_blank");
+            JObject json = JObject.Parse(paymentUrl);
+            paymentUrl = json["url"]?.ToString() ?? string.Empty;
+            tokenMessage = paymentUrl;
+            Uri uri = new Uri(paymentUrl);
+            BrowserLaunchOptions options = new BrowserLaunchOptions()
+                {
+                    LaunchMode = BrowserLaunchMode.SystemPreferred,
+                    TitleMode = BrowserTitleMode.Show,
+                    PreferredToolbarColor = Colors.Violet,
+                    PreferredControlColor = Colors.SandyBrown
+                };
+
+            await Browser.Default.OpenAsync(uri, options);
         }
         catch (Exception ex)
         {
@@ -141,4 +154,8 @@
             Console.Error.WriteLine($"Error loading order details: {ex.Message}");
         }
     }
+}
+@if (!string.IsNullOrEmpty(tokenMessage))
+{
+    <div class="alert alert-info mt-3">@tokenMessage</div>
 }
